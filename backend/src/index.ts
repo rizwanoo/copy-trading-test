@@ -12,9 +12,10 @@ app.use(express.json());
 const tradeSchema = z.object({
   symbol: z.enum(['BTCUSDT', 'ETHUSDT', 'SOLUSDT']),
   side: z.enum(['BUY', 'SELL']),
-  quantity: z.number().positive(),
-  price: z.number().positive(),
-  leverage: z.number().int().positive().max(125)
+  quantity: z.number().positive('Quantity must be positive'),
+  price: z.number().positive('Price must be positive'),
+  leverage: z.number().int().positive('Leverage must be positive').max(125, 'Leverage cannot exceed 125x'),
+  slippageBps: z.number().min(0, 'Slippage cannot be negative').max(500, 'Slippage cannot exceed 500 bps').optional().default(15)
 });
 
 app.get('/api/leader-trades', (_req, res) => res.json(leaderTrades));
@@ -26,13 +27,14 @@ app.post('/api/simulate-copy', (req, res) => {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
 
+  const { slippageBps, ...tradeData } = parsed.data;
   const trade: LeaderTrade = {
     id: `lt_${Date.now()}`,
     timestamp: new Date().toISOString(),
-    ...parsed.data
+    ...tradeData
   };
 
-  return res.json({ trade, orders: buildOrdersForTrade(trade, followers) });
+  return res.json({ trade, orders: buildOrdersForTrade(trade, followers, slippageBps) });
 });
 
 const port = Number(process.env.PORT ?? 4000);

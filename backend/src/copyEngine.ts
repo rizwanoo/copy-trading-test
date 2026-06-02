@@ -39,7 +39,7 @@ export function buildCopiedOrder(
   const rawQuantity = trade.quantity * follower.copyRatio;
   const quantity = Number(roundDownToStep(rawQuantity, SYMBOL_STEP_SIZE[trade.symbol]).toFixed(8));
   const notional = Number((quantity * estimatedFillPrice).toFixed(2));
-  const marginRequired = Number((notional / trade.leverage).toFixed(2));
+  const marginRequired = Number((notional / follower.maxLeverage).toFixed(2));
 
   if (!follower.allowedSymbols.includes(trade.symbol)) {
     return reject(trade, follower, quantity, estimatedFillPrice, notional, marginRequired, 'Symbol is not enabled for follower');
@@ -97,6 +97,6 @@ function reject(
   };
 }
 
-export function buildOrdersForTrade(trade: LeaderTrade, followers: FollowerAccount[]): CopiedOrder[] {
-  return followers.map((follower) => buildCopiedOrder(trade, follower));
+export function buildOrdersForTrade(trade: LeaderTrade, followers: FollowerAccount[], slippageBps = 15): CopiedOrder[] {
+  return followers.map((follower) => buildCopiedOrder(trade, follower, slippageBps));
 }
